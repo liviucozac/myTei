@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../store/store'
 import { resolveScannedValue, resetScan } from '../store/scanSlice'
-import { BrowserMultiFormatReader } from '@zxing/browser'
+import { BrowserMultiFormatReader, BrowserQRCodeReader } from '@zxing/browser'
 import type { Result } from '@zxing/library'
 
 export default function Scanner() {
@@ -13,48 +13,124 @@ export default function Scanner() {
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<{ stop: () => void } | null>(null)
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null)
+  const readerRef = useRef<BrowserQRCodeReader | null>(null)
 
   const [cameraReady, setCameraReady] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [lastValue, setLastValue] = useState<string | null>(null)
-  const [sameCount, setSameCount] = useState(0)
-
-  const chooseBackCamera = async (): Promise<string | undefined> => {
-    const list = (BrowserMultiFormatReader as any).listVideoInputDevices
-    const devices: MediaDeviceInfo[] = list ? await list() : []
-    if (!devices || devices.length === 0) return undefined
-    const back =
-      devices.find((d) => /back|rear|environment/i.test(d.label)) || devices[0]
-    return back.deviceId
-  }
 
   const startCamera = async () => {
     try {
       setErrorMsg(null)
-      readerRef.current = new BrowserMultiFormatReader()
-      const deviceId = await chooseBackCamera()
-
-      controlsRef.current = await readerRef.current.decodeFromVideoDevice(
-        deviceId ?? null,
-        videoRef.current!,
-        (result: Result | undefined) => {
-          if (result) {
-            const text = result.getText().trim()
-            if (text === lastValue) {
-              const next = sameCount + 1
-              setSameCount(next)
-              if (next >= 2) dispatch(resolveScannedValue(text))
-            } else {
-              setLastValue(text)
-              setSameCount(1)
-            }
+      setCameraReady(false)
+      
+      console.log('Initializing camera...')
+      
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported in this browser')
+      }
+      
+      // Create a new QR code reader
+      const codeReader = new BrowserQRCodeReader()
+      readerRef.current = codeReader
+      
+      // Set a timeout for camera initialization
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Camera initialization timeout')), 10000)
+      })
+      
+      const initCamera = async () => {
+        console.log('Requesting camera permissions...')
+        
+        // Try to get camera stream with timeout
+        let stream: MediaStream | null = null
+        
+        try {
+          // Try back camera first
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            } 
+          })
+          console.log('Back camera permission granted')
+        } catch (permError) {
+          console.log('Back camera not available, trying front camera')
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+              video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              }
+            })
+            console.log('Front camera permission granted')
+          } catch (frontError) {
+            throw new Error('Camera permission denied or no camera available')
           }
         }
-      )
-      setCameraReady(true)
+        
+        if (stream) {
+          // Stop the permission test stream
+          stream.getTracks().forEach(track => track.stop())
+        }
+        
+        // Get available video devices
+        const videoInputDevices = await BrowserQRCodeReader.listVideoInputDevices()
+        console.log('Available cameras:', videoInputDevices.length, videoInputDevices.map(d => ({ id: d.deviceId, label: d.label })))
+        
+        if (videoInputDevices.length === 0) {
+          throw new Error('No camera devices found')
+        }
+
+        // Choose the best camera (prefer back camera)
+        let selectedDeviceId = videoInputDevices[0].deviceId
+        const backCamera = videoInputDevices.find(device => 
+          /back|rear|environment/i.test(device.label)
+        )
+        if (backCamera) {
+          selectedDeviceId = backCamera.deviceId
+        }
+        
+        console.log('Selected camera device:', selectedDeviceId)
+
+        // Start decoding with the selected camera
+        if (videoRef.current) {
+          console.log('Starting QR code detection...')
+          
+          controlsRef.current = await codeReader.decodeFromVideoDevice(
+            selectedDeviceId,
+            videoRef.current,
+            (result: Result | undefined, error?: Error) => {
+              if (result) {
+                const text = result.getText().trim()
+                console.log('QR Code detected:', text)
+                
+                // Process immediately
+                console.log('Processing QR code:', text)
+                dispatch(resolveScannedValue(text))
+              }
+              
+              // Only log significant errors
+              if (error && error.name !== 'NotFoundException') {
+                console.warn('Scan error:', error.name, error.message)
+              }
+            }
+          )
+          
+          setCameraReady(true)
+          console.log('Camera started successfully')
+        }
+      }
+      
+      // Race between camera initialization and timeout
+      await Promise.race([initCamera(), timeoutPromise])
+      
     } catch (e) {
-      setErrorMsg('Camera unavailable or permission denied. Use image upload.')
+      console.error('Camera initialization error:', e)
+      setCameraReady(false)
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+      setErrorMsg(`Camera unavailable: ${errorMessage}. Please use the image upload option below.`)
     }
   }
 
@@ -124,17 +200,41 @@ export default function Scanner() {
 
           <div className="upload-section">
             <p>Or upload a QR image (PNG/JPG):</p>
-            <input type="file" accept="image/*" onChange={handleFileUpload} className="file-input" />
-            <button className="upload-button">📁 Choose Image
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="file-input" style={{ display: 'none' }} />
-            </button>
+            <label htmlFor="file-upload-input" className="file-upload-label">
+              <input 
+                id="file-upload-input"
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileUpload} 
+                className="file-input"
+                aria-label="Upload QR code image"
+              />
+            </label>
+            <label htmlFor="file-upload-button" className="upload-button-label">
+              <button className="upload-button" id="file-upload-button">📁 Choose Image</button>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileUpload} 
+                className="file-input" 
+                style={{ display: 'none' }}
+                aria-label="Upload QR code image (hidden)"
+              />
+            </label>
           </div>
 
           {scanState.status === 'decoding' && <div className="scan-status"><p>Decoding…</p></div>}
           {(scanState.status === 'error' || errorMsg) && (
             <div className="scan-error">
-              <p>{scanState.error === 'product_not_found' ? 'Product not found. Try a supported QR.' : (errorMsg ?? 'Scan error')}</p>
-              <button onClick={() => dispatch(resetScan())} className="retry-button">Try Again</button>
+              <p>
+                {scanState.error === 'product_not_found' 
+                  ? 'QR code not recognized. Please scan a Farmacia Tei product QR code.' 
+                  : scanState.error === 'external_redirect'
+                  ? 'Opening Farmacia Tei page in new tab...'
+                  : (errorMsg ?? 'Scan error')
+                }
+              </p>
+              <button onClick={() => dispatch(resetScan())} className="retry-button">Scan Another</button>
             </div>
           )}
         </div>

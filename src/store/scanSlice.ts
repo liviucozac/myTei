@@ -16,16 +16,16 @@ const initialState: ScanState = {
 
 export const normalizeScan = (value: string): string | null => {
   const normalized = value.toLowerCase().trim()
-  const targetUrl =
-    'https://comenzi.farmaciatei.ro/dispozitive-medicale/aspiratoare-nazale/aspirator-nazal-cu-filtru-baby-1-bucata-marimer-p385227'
-
-  if (
-    normalized === targetUrl.toLowerCase() ||
-    normalized.startsWith(targetUrl.toLowerCase())
-  ) {
-    return 'marimer-baby-aspirator'
+  
+  // Check if it's any comenzi.farmaciatei.ro URL
+  if (normalized.includes('comenzi.farmaciatei.ro')) {
+    // Return the full URL as the product identifier
+    return normalized
   }
+  
+  // Keep backward compatibility for existing product IDs
   if (normalized === 'marimer-baby-aspirator') return normalized
+  
   return null
 }
 
@@ -37,9 +37,20 @@ export const resolveScannedValue = createAsyncThunk(
 
     const state = getState() as RootState
     const product = state.products.byId[productId]
-    if (!product) return rejectWithValue('product_not_found')
+    
+    // If product exists in local database, use it
+    if (product) {
+      return { productId, rawValue }
+    }
+    
+    // If it's a farmaciatei.ro URL but not in local database, redirect to external URL
+    if (productId.includes('comenzi.farmaciatei.ro')) {
+      // Open the external URL directly
+      window.open(rawValue, '_blank')
+      return rejectWithValue('external_redirect')
+    }
 
-    return { productId, rawValue }
+    return rejectWithValue('product_not_found')
   }
 )
 
