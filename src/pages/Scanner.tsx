@@ -223,7 +223,12 @@ export default function Scanner() {
             </label>
           </div>
 
-          {scanState.status === 'decoding' && <div className="scan-status"><p>Decoding…</p></div>}
+          {scanState.status === 'decoding' && (
+            <div className="scan-status">
+              <p>Processing QR code...</p>
+              <p><small>Creating product page...</small></p>
+            </div>
+          )}
           {(scanState.status === 'error' || errorMsg) && (
             <div className="scan-error">
               <p>
