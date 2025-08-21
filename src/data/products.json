@@ -1,17 +1,34 @@
 [
   {
     "id": "marimer-baby-aspirator",
-    "name": "Aspirator nazal cu filtru Baby (1 bucată) — Marimer",
-    "brand": "Marimer",
+    "nume": "Aspirator nazal cu filtru Baby (1 bucată) — Marimer",
+    "codProdus": "3518646673115",
+    "categorie": "Aspiratoare nazale",
+    "stoc": "În stoc, disponibil în locații",
     "url": "https://comenzi.farmaciatei.ro/dispozitive-medicale/aspiratoare-nazale/aspirator-nazal-cu-filtru-baby-1-bucata-marimer-p385227",
-    "price": "—",
-    "image": "/images/marimer-baby.jpg",
-    "uses": "Curățarea căilor nazale ale bebelușilor.",
-    "ingredients": "—",
-    "contraindications": "Utilizați conform instrucțiunilor.",
-    "dosage": "Conform recomandărilor medicale.",
-    "storage": "Loc uscat, ferit de lumină.",
-    "warnings": "Nu utilizați piesele deteriorate.",
+    "pret": "39,50 Lei",
+    "image": "https://i.imgur.com/BvIJKEt.png",
+    "proprietati": [
+      "- este soluția ideală pentru a aspira eficace nasul bebelușului;",
+      "- forma și textura moale a aplicatorului nazal asigură confort maxim pentru bebeluș;",
+      "- reutilizabil, cu tub din silicon;",
+      "- pentru aspirarea delicata, controlata și rapida a mucozităților."
+    ],
+    "modUtilizare": [
+      "- Așezați bebelușul pe masa de înfășat și ridicați-i capul.",
+      "- Instilați ser fiziologic sau soluție salină diluată izotonică în fiecare nară a bebelușului pentru a facilita aspirarea secrețiilor.",
+      "- Introduceți aplicatorul bucal (E) în gura dumneavoastră.",
+      "- Introduceți aplicatorul nazal (A) într-una din nările bebelușului și aspirați.",
+      "- Repetați pentru cealaltă nară."
+    ],
+    "precautii": [
+      "- Înainte de fiecare utilizare, asigurați-vă că toate componentele sunt în perfectă stare.",
+      "- Înlocuiți aspiratorul nazal pentru bebeluși și/sau aplicatorul la primul semn de uzură sau deteriorare.",
+      "- A nu se fierbe."
+    ],
+    "dozaj": "Conform recomandărilor medicale.",
+    "depozitare": "Loc uscat, ferit de lumină.",
+    "atentie": "Nu utilizați piesele deteriorate.",
     "codes": [
       "marimer-baby-aspirator",
       "https://comenzi.farmaciatei.ro/dispozitive-medicale/aspiratoare-nazale/aspirator-nazal-cu-filtru-baby-1-bucata-marimer-p385227"
