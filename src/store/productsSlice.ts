@@ -2,17 +2,19 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 export interface Product {
   id: string
-  name: string
-  brand: string
+  nume: string
+  codProdus: string
+  categorie: string
+  stoc: string
   url: string
-  price: string
+  pret: string
   image: string
-  uses: string
-  ingredients: string
-  contraindications: string
-  dosage: string
-  storage: string
-  warnings: string
+  proprietati: string[]
+  modUtilizare: string[]
+  precautii: string[]
+  dozaj: string
+  depozitare: string
+  atentie: string
   codes: string[]
 }
 
